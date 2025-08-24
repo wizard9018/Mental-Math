@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mental Math – Billboard (v6)</title>
+  <style>
+    :root{ --bg1:#0e0b25; --bg2:#10192d; --glass:rgba(255,255,255,0.06); --border:rgba(255,255,255,0.12); --muted:#9aa4b2; --text:#e8eef6; --accent1:#60a5fa; --accent2:#22d3ee; --good:#4ade80; --bad:#fb7185; }
+    *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    body{margin:0;min-height:100vh;color:var(--text);background:linear-gradient(120deg,var(--bg1),var(--bg2));background-size:200% 200%;animation:bg 18s ease-in-out infinite;display:flex;align-items:center;justify-content:center;padding:24px}
+    @keyframes bg{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    .container{width:min(1200px,100%);display:grid;gap:18px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border:1px solid var(--border);border-radius:22px;padding:20px;box-shadow:0 20px 40px rgba(0,0,0,.45);backdrop-filter:blur(10px)}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    h1{margin:0;font-weight:800;letter-spacing:.3px;font-size:clamp(20px,3vw,28px);background:linear-gradient(90deg,var(--accent1),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .muted{color:var(--muted)}
+    .hidden{display:none!important}
+    .lvl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:10px}
+    .lvl{position:relative;background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:16px;cursor:pointer;transition:.2s transform,.2s box-shadow}
+    .lvl:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(0,0,0,.35)}
+    .lvl .title{font-weight:800}
+    .lvl .sub{font-size:12px;color:var(--muted)}
+    .name{display:flex;gap:10px;align-items:center;margin-top:12px}
+    .name input{flex:1;border-radius:12px;border:1px solid var(--border);padding:10px 12px;background:#0a1020;color:var(--text)}
+
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+    .stat{background:#0a1020;border:1px solid var(--border);border-radius:14px;padding:10px;text-align:center}
+    .stat .label{font-size:12px;color:var(--muted)}
+    .stat .value{font-size:20px;font-weight:800}
+    .progress{height:12px;background:#0a1020;border:1px solid var(--border);border-radius:999px;overflow:hidden}
+    .progress>div{height:100%;width:0%;background:linear-gradient(90deg,var(--good),#22c55e);transition:width .25s ease}
+    #timerBar{height:10px;background:linear-gradient(90deg,var(--accent1),var(--accent2));border-radius:999px;margin:8px 0;box-shadow:0 0 14px rgba(96,165,250,.45) inset}
+
+    .controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:6px 0 0}
+    .controls button{background:#1f2937;color:#e5e7eb}
+
+    .problem{font-family:ui-monospace,Menlo,Consolas,monospace;text-align:center;white-space:nowrap;font-weight:900;font-size:56px;letter-spacing:1px;margin:8px 0;overflow-x:auto;}
+    .problem[data-small="1"]{font-size:48px}
+    .problem[data-small="2"]{font-size:40px}
+    .problem[data-small="3"]{font-size:32px}
+
+    .actions{display:flex;gap:8px;justify-content:center}
+    button{border:none;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer;transition:.18s transform,.18s filter}
+    button:hover{transform:translateY(-1px);filter:brightness(1.05)}
+    #submitBtn{background:var(--good);color:#072314}
+    #answer{width:min(280px,75%);border-radius:12px;border:1px solid var(--border);padding:12px 14px;background:#0a1020;color:#fff;font-size:18px;text-align:center}
+    .feedback{text-align:center;font-size:22px;min-height:28px;margin-top:8px}
+
+    .tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+    .tab{padding:8px 14px;border-radius:10px;background:#1f2937;cursor:pointer;font-weight:700;color:#e5e7eb}
+    .tab.active{background:var(--accent1);color:#fff}
+
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid var(--border)}
+    th{color:#a5f3fc}
+    tbody tr:hover{background:rgba(255,255,255,.05)}
+    .mini{display:flex;gap:8px;align-items:center}
+    .mini button{background:#0b1226;color:#cbd5e1;border:1px solid var(--border);padding:8px 10px;border-radius:10px;font-weight:700}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <header>
+        <h1>Mental Math Challenge</h1>
+        <span class="muted">Finish 20 correct answers</span>
+      </header>
+
+      <section id="startScreen">
+        <div class="muted">Pick a level to begin:</div>
+        <div class="lvl-grid">
+          <div class="lvl levelBtn" data-top="2" data-bottom="1"><div class="title">Level 1 · 2×1</div><div class="sub">Beginner</div></div>
+          <div class="lvl levelBtn" data-top="3" data-bottom="1"><div class="title">Level 2 · 3×1</div><div class="sub">Novice</div></div>
+          <div class="lvl levelBtn" data-top="4" data-bottom="1"><div class="title">Level 3 · 4×1</div><div class="sub">Apprentice</div></div>
+          <div class="lvl levelBtn" data-top="2" data-bottom="2"><div class="title">Level 4 · 2×2</div><div class="sub">Skilled</div></div>
+          <div class="lvl levelBtn" data-top="3" data-bottom="2"><div class="title">Level 5 · 3×2</div><div class="sub">Advanced</div></div>
+          <div class="lvl levelBtn" data-top="4" data-bottom="2"><div class="title">Level 6 · 4×2</div><div class="sub">Expert</div></div>
+          <div class="lvl levelBtn" data-top="3" data-bottom="3"><div class="title">Level 7 · 3×3</div><div class="sub">Master</div></div>
+        </div>
+        <div class="name"><span class="muted">Name</span><input id="playerName" type="text" placeholder="e.g., Alex" / autocomplete="off"></div>
+        <div class="name"><span class="muted">School</span><input id="playerSchool" type="text" placeholder="e.g., Kitsilano Secondary" / autocomplete="off"></div>
+      </section>
+
+      <section id="gameScreen" class="hidden">
+        <div class="stats">
+          <div class="stat"><div class="label">Correct</div><div id="correctVal" class="value">0</div></div>
+          <div class="stat"><div class="label">Wrong</div><div id="wrongVal" class="value">0</div></div>
+          <div class="stat"><div class="label">Accuracy</div><div id="accVal" class="value">100%</div></div>
+          <div class="stat"><div class="label">Total Time</div><div id="timeVal" class="value">0s</div></div>
+        </div>
+        <div class="progress" aria-label="progress to 20 correct"><div id="progressFill"></div></div>
+        <div id="timerBar" style="width:100%"></div>
+        <div id="problem" class="problem">— × — = ?</div>
+        <div class="controls">
+          <button id="layoutToggle" title="Switch layout">Vertical: Off</button>
+          <button id="symbolToggle" title="Switch multiplication symbol">Symbol: ×</button>
+          <button id="biggerToggle" title="Bigger text">Text: Auto</button>
+        </div>
+        <div class="actions">
+          <input id="answer" type="number" inputmode="numeric" placeholder="Type your answer" / autocomplete="off">
+          <button id="submitBtn">Submit</button>
+        </div>
+        <div id="feedback" class="feedback"></div>
+        <div class="actions" style="justify-content:center;margin-top:8px">
+          <button id="nextBtn" disabled>Next</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Billboard with tabs + Reset/Reseed -->
+    <div class="card">
+      <header>
+        <h1>Billboard</h1>
+        <div class="mini">
+          <span class="muted">Switch levels with tabs</span>
+          <button id="resetReseedBtn" title="Clear scoreboard and reseed presets">Reset & Reseed</button>
+        </div>
+      </header>
+      <div class="tabs" id="billboardTabs"></div>
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>School</th><th>Accuracy</th><th>Time</th><th>Wrong</th></tr></thead>
+        <tbody id="billboardBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const $ = s => document.querySelector(s);
+
+    // ---------- State ----------
+    const state = {
+      name:'', school:'', top:2, bottom:1, target:20,
+      correct:0, wrong:0, current:null,
+      perQSeconds:180, timeLeft:180, qTimer:null,
+      startedAt:0, levelLabel:'2×1', a:0, b:0,
+      vertical:false, useX:false, forceSize:0
+    };
+
+    // ---------- Utils ----------
+    function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+    function nDigit(n){ const lo = Math.pow(10,n-1); const hi = Math.pow(10,n)-1; return n===1 ? randInt(2,9) : randInt(lo,hi); }
+    function padLeft(n, width){ const s=String(n); return s.length>=width? s : ' '.repeat(width-s.length)+s; }
+    function fmtTime(sec){ sec=Math.max(0,Math.round(sec)); const m=Math.floor(sec/60), s=sec%60; return m? (m+'m '+s+'s') : (s+'s'); }
+    function loadJSON(key, fallback){ try{ return JSON.parse(localStorage.getItem(key)) ?? fallback; }catch(e){ return fallback; } }
+    function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+    // ---------- Problem generation & render ----------
+    function makeProblem(){
+      state.a = nDigit(state.top);
+      state.b = nDigit(state.bottom);
+      state.current = state.a * state.b;
+      renderProblem();
+      ansEl.value = '';
+      ansEl.disabled = false;
+      submitBtn.disabled = false;
+      nextBtn.disabled = true;
+      feedbackEl.textContent = '';
+      ansEl.focus();
+      startTimer();
+    }
+
+    function renderProblem(){
+      const symbol = state.useX ? 'x' : '×';
+      if(state.vertical){
+        const w = Math.max(String(state.a).length, String(state.b).length);
+        const line = '—'.repeat(w+2);
+        const text = `${padLeft(state.a,w+2)}
+${symbol} ${padLeft(state.b,w)}
+${line}
+${padLeft('?',w+2)}`;
+        problemEl.style.whiteSpace = 'pre';
+        problemEl.textContent = text;
+      } else {
+        problemEl.style.whiteSpace = 'nowrap';
+        const text = `${state.a} ${symbol} ${state.b} = ?`;
+        problemEl.textContent = text;
+      }
+      autoSize();
+    }
+
+    function autoSize(){
+      const len = problemEl.textContent.length;
+      let small = 0;
+      if(state.forceSize){ small = state.forceSize; }
+      else if(state.vertical){ small = 2; }
+      else if(len>20){ small = 3; }
+      else if(len>16){ small = 2; }
+      else if(len>12){ small = 1; }
+      problemEl.setAttribute('data-small', String(small));
+    }
+
+    // ---------- DOM refs ----------
+    const problemEl = document.getElementById('problem');
+    const ansEl = document.getElementById('answer');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const feedbackEl = document.getElementById('feedback');
+    const progressFill = document.getElementById('progressFill');
+    const timerBar = document.getElementById('timerBar');
+    const layoutToggle = document.getElementById('layoutToggle');
+    const symbolToggle = document.getElementById('symbolToggle');
+    const biggerToggle = document.getElementById('biggerToggle');
+    const resetReseedBtn = document.getElementById('resetReseedBtn');
+
+    // ---------- Timer ----------
+    function startTimer(){
+      if(state.qTimer) clearInterval(state.qTimer);
+      state.timeLeft = state.perQSeconds;
+      timerBar.style.width = '100%';
+      state.qTimer = setInterval(()=>{
+        state.timeLeft--;
+        const pct = Math.max(0, (state.timeLeft/state.perQSeconds)*100);
+        timerBar.style.width = pct + '%';
+        if(state.timeLeft<=0){ clearInterval(state.qTimer); markWrong(true); }
+      },1000);
+    }
+
+    // ---------- Stats ----------
+    function updateStats(){
+      $('#correctVal').textContent = state.correct;
+      $('#wrongVal').textContent = state.wrong;
+      const total = state.correct + state.wrong || 1;
+      $('#accVal').textContent = Math.round((state.correct/total)*100) + '%';
+      const elapsed = Math.round((performance.now()-state.startedAt)/1000);
+      $('#timeVal').textContent = `${elapsed}s`;
+      progressFill.style.width = Math.min(100, (state.correct/state.target)*100) + '%';
+    }
+
+    function celebrate(){
+      const words = ['Great!','Nice!','Perfect!'];
+      feedbackEl.textContent = words[Math.floor(Math.random()*words.length)];
+    }
+
+    function markCorrect(){
+      clearInterval(state.qTimer);
+      state.correct++;
+      celebrate();
+      submitBtn.disabled = true;
+      ansEl.disabled = true;
+      nextBtn.disabled = false;
+      updateStats();
+      if(state.correct>=state.target){ endGame(); }
+    }
+
+    function markWrong(timeout=false){
+      clearInterval(state.qTimer);
+      state.wrong++;
+      feedbackEl.textContent = timeout ? 'Time up! Try the next one.' : 'Not quite. Try the next one.';
+      submitBtn.disabled = true;
+      ansEl.disabled = true;
+      nextBtn.disabled = false;
+      updateStats();
+    }
+
+    submitBtn.addEventListener('click', ()=>{
+      const raw = ansEl.value.trim();
+      if(raw==='') return;
+      const val = Number(raw);
+      if(!Number.isFinite(val)) return;
+      if(val === state.current) markCorrect(); else markWrong();
+    });
+
+    layoutToggle.addEventListener('click', ()=>{
+      state.vertical = !state.vertical;
+      layoutToggle.textContent = 'Vertical: ' + (state.vertical? 'On':'Off');
+      renderProblem();
+    });
+    symbolToggle.addEventListener('click', ()=>{
+      state.useX = !state.useX;
+      symbolToggle.textContent = 'Symbol: ' + (state.useX? 'x':'×');
+      renderProblem();
+    });
+    biggerToggle.addEventListener('click', ()=>{
+      state.forceSize = (state.forceSize+1)%4;
+      const labels=['Auto','-1','-2','-3'];
+      biggerToggle.textContent = 'Text: ' + labels[state.forceSize];
+      renderProblem();
+    });
+
+    ansEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ submitBtn.click(); }});
+    nextBtn.addEventListener('click', ()=>{ makeProblem(); });
+
+    function startGame(){
+      state.correct=0; state.wrong=0;
+      state.startedAt=performance.now();
+      updateStats();
+      makeProblem();
+    }
+
+    // ---------- Persisted player info ----------
+    const NAME_KEY = 'mm_player_name';
+    const SCHOOL_KEY = 'mm_player_school';
+    const boardKey = 'mm_board_v1';
+    const SEED_FLAG = 'mm_board_seeded_v1';
+
+    const nameInput = document.getElementById('playerName');
+    const schoolInput = document.getElementById('playerSchool');
+    nameInput.value = localStorage.getItem(NAME_KEY) || '';
+    schoolInput.value = localStorage.getItem(SCHOOL_KEY) || '';
+
+    // ---------- Billboard storage helpers ----------
+    function getBoard(){
+      const data = loadJSON(boardKey, {});
+      const levels = ["2×1","3×1","4×1","2×2","3×2","4×2","3×3"];
+      levels.forEach(l => { if(!Array.isArray(data[l])) data[l] = []; });
+      return data;
+    }
+    function saveBoard(data){ saveJSON(boardKey, data); }
+
+    function addEntryForLevel(level, entry){
+      const data = getBoard();
+      data[level].push(entry);
+      data[level].sort((a,b)=> (a.timeSec - b.timeSec) || (b.accuracy - a.accuracy) || (a.wrong - b.wrong));
+      if(data[level].length > 100) data[level] = data[level].slice(0,100);
+      saveBoard(data);
+    }
+
+    // ---------- Random names & Vancouver schools ----------
+    const SAMPLE_NAMES = ["Ava Li","Noah Chen","Sofia Park","Liam Zhang","Emily Wong","Daniel Kim","Maya Patel","Ethan Nguyen","Chloe Tran","Lucas Garcia"];
+    const YVR_SCHOOLS = [
+      "Kitsilano Secondary School",
+      "Sir Winston Churchill Secondary School",
+      "Magee Secondary School",
+      "Prince of Wales Secondary School",
+      "Eric Hamber Secondary School",
+      "Lord Byng Secondary School",
+      "Vancouver Technical Secondary School",
+      "Britannia Secondary School",
+      "David Thompson Secondary School",
+      "Killarney Secondary School",
+      "Templeton Secondary School",
+      "Windermere Secondary School"
+    ];
+    function pickDistinct(arr, k){
+      const pool = [...arr];
+      const out = [];
+      for(let i=0;i<k && pool.length;i++){
+        const idx = Math.floor(Math.random()*pool.length);
+        out.push(pool.splice(idx,1)[0]);
+      }
+      return out;
+    }
+
+    // ---------- Seed with 3 students (random schools) if not seeded ----------
+    function seedBoardIfNeeded(){
+      if(localStorage.getItem(SEED_FLAG)) return;
+      const data = getBoard();
+      const levels = ["2×1","3×1","4×1","2×2","3×2","4×2","3×3"];
+
+      const pickedSchools = pickDistinct(YVR_SCHOOLS, 3);
+      const pickedNames = pickDistinct(SAMPLE_NAMES, 3);
+
+      const samples = pickedNames.map((nm, i)=>{
+        const wrong = randInt(0,2);
+        const timeSec = randInt(80,150);
+        const acc = 20 / (20 + wrong);
+        return { name: nm, school: pickedSchools[i], timeSec, wrong, accuracy: acc, finishedAt: new Date().toISOString() };
+      });
+
+      levels.forEach(lvl => {
+        data[lvl].push(...samples);
+        data[lvl].sort((a,b)=> (a.timeSec - b.timeSec) || (b.accuracy - a.accuracy) || (a.wrong - b.wrong));
+        if(data[lvl].length > 100) data[lvl] = data[lvl].slice(0,100);
+      });
+
+      saveBoard(data);
+      localStorage.setItem(SEED_FLAG, '1');
+    }
+
+    // ---------- Reset & Reseed button ----------
+    function resetAndReseed(){
+      localStorage.removeItem(boardKey);
+      localStorage.removeItem(SEED_FLAG);
+      seedBoardIfNeeded();
+      renderBoard();
+    }
+    resetReseedBtn.addEventListener('click', resetAndReseed);
+
+    // Optional: ?reset=1 on URL to force reseed
+    try{
+      const params = new URLSearchParams(location.search);
+      if(params.get('reset')==='1'){ resetAndReseed(); }
+    }catch(_e){}
+
+    // ---------- Start handlers ----------
+    document.querySelectorAll('.levelBtn').forEach(btn => btn.addEventListener('click', ()=>{
+      state.name = nameInput.value.trim() || 'Anonymous';
+      state.school = schoolInput.value.trim() || '—';
+      localStorage.setItem(NAME_KEY, state.name);
+      localStorage.setItem(SCHOOL_KEY, state.school);
+
+      state.top=Number(btn.dataset.top);
+      state.bottom=Number(btn.dataset.bottom);
+      state.levelLabel=`${state.top}×${state.bottom}`;
+      document.getElementById('startScreen').classList.add('hidden');
+      document.getElementById('gameScreen').classList.remove('hidden');
+      startGame();
+      renderTabs();
+    }));
+
+    function renderTabs(){
+      const tabs=$('#billboardTabs');
+      tabs.innerHTML='';
+      const levels=["2×1","3×1","4×1","2×2","3×2","4×2","3×3"];
+      levels.forEach(lvl=>{
+        const tab=document.createElement('div');
+        tab.className='tab'+(lvl===state.levelLabel?' active':'');
+        tab.textContent=lvl;
+        tab.addEventListener('click',()=>{state.levelLabel=lvl; renderTabs(); renderBoard();});
+        tabs.appendChild(tab);
+      });
+    }
+
+    function renderBoard(){
+      const tbody = $('#billboardBody');
+      tbody.innerHTML = '';
+      const data = getBoard();
+      const rows = data[state.levelLabel] || [];
+
+      if(rows.length===0){
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 6;
+        td.className = 'muted';
+        td.textContent = 'No finishes yet — be the first!';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+
+      rows.forEach((r, idx)=>{
+        const tr = document.createElement('tr');
+
+        const rank = document.createElement('td');
+        let medal = '';
+        if(idx===0) medal='🥇 ';
+        else if(idx===1) medal='🥈 ';
+        else if(idx===2) medal='🥉 ';
+        rank.innerHTML = medal + (idx+1);
+        tr.appendChild(rank);
+
+        const name = document.createElement('td'); name.textContent = r.name; tr.appendChild(name);
+        const school = document.createElement('td'); school.textContent = r.school; tr.appendChild(school);
+
+        const acc = document.createElement('td'); acc.textContent = Math.round(r.accuracy*100) + '%'; tr.appendChild(acc);
+        const time = document.createElement('td'); time.textContent = fmtTime(r.timeSec); tr.appendChild(time);
+        const wrong = document.createElement('td'); wrong.textContent = r.wrong; tr.appendChild(wrong);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ---------- End game ----------
+    function endGame(){
+      clearInterval(state.qTimer);
+      const elapsedSec = Math.round((performance.now()-state.startedAt)/1000);
+      const total = state.correct + state.wrong || 1;
+      const acc = state.correct / total;
+
+      addEntryForLevel(state.levelLabel, {
+        name: state.name || 'Anonymous',
+        school: state.school || '—',
+        timeSec: elapsedSec,
+        wrong: state.wrong,
+        accuracy: acc,
+        finishedAt: new Date().toISOString()
+      });
+
+      feedbackEl.textContent = '🎉 Finished 20 correct!';
+      submitBtn.disabled = true;
+      ansEl.disabled = true;
+      nextBtn.disabled = true;
+
+      setTimeout(()=>{
+        document.getElementById('gameScreen').classList.add('hidden');
+        document.getElementById('startScreen').classList.remove('hidden');
+        renderTabs();
+        renderBoard();
+      }, 1200);
+    }
+
+    // ---------- Initial render ----------
+    seedBoardIfNeeded();
+    renderTabs();
+    renderBoard();
+  });
+  </script>
+</body>
+</html>
